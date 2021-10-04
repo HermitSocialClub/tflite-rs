@@ -61,6 +61,7 @@ fn binary_changing_features() -> String {
 
 fn prepare_tensorflow_library() {
     let arch = env::var("CARGO_CFG_TARGET_ARCH").expect("Unable to get TARGET_ARCH");
+    let os = env::var("CARGO_CFG_TARGET_OS").expect("Unable to get TARGET_OS");
 
     #[cfg(feature = "build")]
     {
@@ -71,7 +72,6 @@ fn prepare_tensorflow_library() {
         let binary_changing_features = binary_changing_features();
         let tf_lib_name =
             Path::new(&out_dir).join(format!("libtensorflow-lite{}.a", binary_changing_features,));
-        let os = env::var("CARGO_CFG_TARGET_OS").expect("Unable to get TARGET_OS");
         if !tf_lib_name.exists() {
             println!("Building tflite");
             let start = Instant::now();
@@ -180,7 +180,11 @@ fn prepare_tensorflow_library() {
         println!("cargo:rustc-link-lib={}=tensorflow-lite", static_dynamic);
         println!("cargo:rerun-if-changed={}", lib_dir);
     }
-    println!("cargo:rustc-link-lib=dylib=pthread");
+    // pthreads are included with the standard library
+    // on Android, and there is no additional library
+    if !os.contains("android") {
+        println!("cargo:rustc-link-lib=dylib=pthread");
+    }
     println!("cargo:rustc-link-lib=dylib=dl");
 }
 
